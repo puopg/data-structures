@@ -1,6 +1,6 @@
 
 
-var HashTable = function(){
+var HashTable = function(size){
   this._limit = 8;
   this._storage = LimitedArray(this._limit);
   for (var i = 0; i < this._limit; i++)
@@ -11,17 +11,36 @@ var HashTable = function(){
 
 HashTable.prototype.insert = function(k, v){
   var i = getIndexBelowMaxForKey(k, this._limit);
+
+  // Check if we need to resize
+  if(this.extendCapacity()){
+    // Create a new HashTable with double the size
+    var oldStorage = this._storage;
+    this._limit = this._limit*2;
+    this._storage = LimitedArray(this._limit);
+
+    for (var i = 0; i < this._limit; i++)
+      this._storage.set(i,LinkedListForHash());
+
+    var hi = oldStorage.get(4);
+    // Call the helper's each method and for each linkedlist,
+    // pass in a function to extract the key and value
+    oldStorage.each(function(list){
+      var tempNode = list.head;
+      while(tempNode !== null){
+        this._storage.insert(tempNode.key, tempNode.value);
+      }
+    });
+  }
+
   // Retrieve the current linked list
-    var newList = this._storage.get(i);
-  // append the the retrieve list the new node
-    newList.addToTail(k,v);
-  // replace the linked list at hashIndex with the new appened version
-  //this._storage.set(i, v);
+    var list = this._storage.get(i);
+  // Append to the retrieved list the new node
+    list.addToTail(k,v);
 };
 
 HashTable.prototype.retrieve = function(k){
   var i = getIndexBelowMaxForKey(k, this._limit);
-
   return this._storage.get(i).getVal(k);
 };
 
@@ -30,6 +49,18 @@ HashTable.prototype.remove = function(k){
   this._storage.get(i).removeNode(k);
 }
 
+HashTable.prototype.extendCapacity = function(){
+    var slotsUsed = 0;
+    for (var i = 0; i < this._limit; i++){
+      if(this._storage.get(i).head !== null){
+        slotsUsed++;
+      }
+    }
+    if(slotsUsed >= (0.25 * this._limit))
+      return true;
+
+    return false;
+}
 //==========================================
 
 var LinkedListForHash = function(){
